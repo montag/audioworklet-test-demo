@@ -1,21 +1,21 @@
-# AudioWorklet Jest UnitTest Experiment
+# AudioWorklet Unit Test Experiment with Jest
 
-While building an app with AudioWorklets [an example of which I made here](https://montag.gitlab.io/vue-audioworklet-demo/), I wondered how one might go about testing these things.
+While building an app with AudioWorklets, [an example of which I made here](https://montag.gitlab.io/vue-audioworklet-demo/), I wondered how one might go about testing these things.
 
 I looked at some of the testing tools/examples that are out there such as the [Web Platform Tests](https://github.com/web-platform-tests/wpt) and the [Web Audio Test Api](https://github.com/mohayonao/web-audio-test-api) as well as some [interesting Webkit tests](https://github.com/WebKit/webkit/blob/master/LayoutTests/webaudio/gain.html).
 
-These tools had a few issues, notably they are mostly testing the Web Audio Api itself, or an apps usage of it e.g. verify the audio graph(s). Secondarily, they all have their own api's and don't necessarily integrate with standard tooling (mocha, jest, etc) that we might find in a web app. 
+These tools had a few issues, notably they are mostly for testing the Web Audio Api itself, or an apps usage of it e.g. verify the audio graph(s). Secondarily, they all have their own api's and don't necessarily integrate with the standard tooling (mocha, jest, etc) that we might find in a web app. 
 
-Yet, AudioWorklet processors have a simple and well-defined interface which makes their implementation a good candidate for unit testing entirely independent of the Web Audio Api itself. They are simply passing in Float32Arrays, doing some work, and sending some Float32Arrays back.  
+Yet, AudioWorklet processors have a simple and well-defined interface which makes their implementation a good candidate for unit testing entirely independent of the Web Audio Api itself. They are simply passed in Float32Arrays, doing some work, and return some Float32Arrays when they are done.  
 
 ### Prototype Goals ###
 
 1. Mock the AudioWorkletProcessor superclass
 2. Import and instantiate the worklet
-3. Create realistic frames of audio to feed into the worklet
+3. Create realistic frames of audio data to feed into the worklet
 4. Ability to modify parameters 
 5. Verify that the output matches what it should with a decent amount of precision.
-6. Do all of the above using the apps jest test suite with the standard build chain (e.g. webpack4) 
+6. Do all of the above using the apps test suite (Jest) with the standard build chain (e.g. webpack4) 
 
 ### Steps ###
 
@@ -45,12 +45,11 @@ This AudioWorkletProcessor.js mocks the necessary classes and functions needed i
 
 /tests/unit/worklet.spec.js
 ```ecmascript 6
-    import './fixtures/AudioWorkletProcessor.js';
-    import GainWorklet from "@/worklet/GainWorklet";
+    import './fixtures/AudioWorkletProcessor.js'
 ```
 
 ### 2. Import and instantiate the worklet ###
-2. Add 'export default' to the Worklet impl. This lets us import it like normal modules. Making it an es6 module doesnt effect the worklet when it's loaded into the AudioWorkletGlobalScope and it makes it easier to import into our tests.
+2. Add 'export default' to the Worklet impl. Making it an es6 module doesn't effect the worklet when it's loaded into the AudioWorkletGlobalScope and it makes it easier to import into our tests.
 
 /worklets/GainWorklet <--- the worklet under test
 ~~~ecmascript 6
@@ -61,7 +60,7 @@ This AudioWorkletProcessor.js mocks the necessary classes and functions needed i
 
 /tests/unit/worklet.spec.js
 ```ecmascript 6
-    import './fixtures/AudioWorkletProcessor.js';
+    import './fixtures/AudioWorkletProcessor.js'
     import GainWorklet from "@/worklet/GainWorklet";
 ```
  
@@ -107,11 +106,11 @@ test('test gain 1', () => {
   })
 ~~~
 
-Above we can see that we are setting the `testGain` to 1.0, and passing in two mock `AudioParams` that the processor expects. It would also be possible to examine the parameters via `parameterDescriptors` and make more complex or automated test generation. It might also be possible to mock the currentTime of the processor, and or to mock a-rate or k-rate params for more advance scenarios.
+Above we can see that we are setting the `testGain` to 1.0, and passing in two mock `AudioParams` that the processor expects. It would also be possible to examine the parameters via `parameterDescriptors` for more complex or automated test generation. It should also be possible to mock the currentTime of the processor, and or to mock a-rate or k-rate params for more advance scenarios.
 
 ### 5. Verify that the output matches what it should with a decent amount of precision. ###
 
-After the processor executes a frame, the data is available in `outputs`. 
+After the processor executes the data is available in `outputs`. 
 
 ~~~ecmascript 6
     worklet.process(inputs, outputs, { gainChannel_0: [testGain], gainChannel_1: [testGain]})
@@ -122,9 +121,9 @@ After the processor executes a frame, the data is available in `outputs`.
     }
 ~~~
 
-Here we loop through each channel and call a helper function to compare the two Float32Array's while also providing a multiplier function that duplicates what we expect the processor to be doing.  
+Here we loop through each channel and call a helper function to compare the two TypedArrays while also providing a multiplier function that duplicates what we expect the processor to be doing.  
 
-Since this is a trivial example it's easy to duplicate the processor function. For more complex processors, it might make more sense to capture the output or possibly hash the outputs and compare hashing instead.  
+Since this is a trivial example it's easy to duplicate the processor function. For more complex processors, it might make more sense to capture the output or even hash the outputs to save some space.
 
 ~~~ecmascript 6
 /**
@@ -145,9 +144,9 @@ export function framesMatch(resultFrame, expectedFrame, multiplier=1.0) {
 }
 ~~~
 
-### 6. Do all of the above using the apps jest test suite with the standard buildchain (e.g. webpack4) ###
+### 6. Do all of the above using the apps test suite (Jest) with the standard buildchain (e.g. webpack4) ###
 
-As this is within a Jest unit test spec, we've integrated our test within the overall application test suites. 
+As this is within a Jest unit test, we've integrated our test within the overall application's test suites. 
 
 ~~~
 $ yarn test:unit
