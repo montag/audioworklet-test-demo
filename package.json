@@ -1,5 +1,5 @@
 {
-  "name": "jest-test",
+  "name": "audioworklet-jest-test",
   "version": "0.1.0",
   "private": true,
   "scripts": {
